@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Juego Capacitación Wilson V4.4 (Fix Banner)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            /* overflow: hidden; <-- ELIMINADO (ARREGLO 1) */
+            height: 100%;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        #game-container {
+            width: 100vw;
+            /* --- ARREGLO V4.4 (Anti-Banner) --- */
+            /* Volvemos al 100% de altura */
+            height: 100vh;
+            /* Añadimos un "piso" interno de 90px */
+            padding-bottom: 90px;
+            box-sizing: border-box; 
+            /* --- FIN DE ARREGLO --- */
+            
+            position: relative;
+            background-color: #3a7a3a; /* Verde cancha de tenis */
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.1) 2px, transparent 2px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 2px, transparent 2px);
+            /* overflow: hidden; <-- ELIMINADO (ARREGLO 2) */
+            display: flex; /* Centrar el juego */
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        /* --- PANTALLAS (Popups) --- */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex; 
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            z-index: 10;
+            overflow-y: auto; /* <-- Esta línea es CLAVE, permite el scroll en la pantalla final */
+        }
+        
+        /* --- ESTILOS UI POPUP --- */
+        h1 { font-size: calc(24px + 2vw); margin-bottom: 20px; }
+        h2 { font-size: calc(20px + 1.5vw); margin-bottom: 15px; }
+        h3 { font-size: calc(18px + 1.2vw); margin-top: 20px; border-bottom: 1px solid #de130a; padding-bottom: 5px; }
+        p { font-size: calc(16px + 1vw); }
+
+        input[type="text"] {
+            font-size: calc(18px + 1vw);
+            padding: 10px;
+            margin: 20px 0;
+            border-radius: 5px;
+            border: none;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .button {
+            font-size: calc(20px + 1vw);
+            padding: 15px 30px;
+            background-color: #de130a; /* Rojo Wilson */
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 20px;
+        }
+        .button:hover { background-color: #b71007; }
+        
+        /* --- UI DEL JUEGO (Visible) --- */
+        #game-ui {
+            width: 100%;
+            color: white;
+            padding: 10px;
+            box-sizing: border-box;
+            font-size: calc(16px + 1vw);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 5;
+        }
+        #ui-top {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 5%;
+        }
+        #ui-question {
+            width: 100%;
+            padding: 10px 5%;
+            font-size: calc(18px + 1.2vw);
+            text-align: center;
+            font-weight: bold;
+            box-sizing: border-box;
+            min-height: 10vh; /* Espacio para la pregunta */
+        }
+        
+        /* --- GRID DE RESPUESTAS --- */
+        #answer-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* 2x2 grid */
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+            width: 100%;
+            height: 40vh; /* Ocupa la parte baja de la pantalla */
+            box-sizing: border-box;
+        }
+        .answer-button {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            color: white;
+            border-radius: 10px;
+            font-size: calc(14px + 1vw);
+            font-weight: bold;
+            cursor: pointer;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            transition: background-color 0.2s;
+        }
+        .answer-button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .answer-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        .answer-button.correct {
+            background-color: #4CAF50 !important; /* Verde */
+            border-color: #4CAF50 !important;
+        }
+        .answer-button.incorrect {
+            background-color: #f44336 !important; /* Rojo */
+            border-color: #f44336 !important;
+        }
+
+
+        /* --- PANTALLA FINAL --- */
+        #end-screen-content {
+            width: 100%;
+            max-width: 800px;
+        }
+        #ranking-list {
+            list-style: decimal;
+            padding-left: 30px;
+            width: 100%;
+            max-width: 500px;
+            font-size: calc(14px + 1vw);
+            margin: 10px auto;
+            text-align: left;
+        }
+        #ranking-list li {
+            background: rgba(255, 255, 255, 0.1);
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            display: list-item;
+        }
+        #ranking-list .player-score {
+            float: right;
+            font-weight: bold;
+        }
+        
+        /* --- SECCIÓN DE REVISIÓN --- */
+        #review-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+            width: 100%;
+            text-align: left;
+            font-size: calc(12px + 0.8vw);
+            margin-top: 20px;
+        }
+        #review-container > div { width: 48%; }
+        #review-container ul { list-style: none; padding: 0; }
+        #review-container li {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+        #good-answers li { border-left: 5px solid #4CAF50; }
+        #bad-answers li { border-left: 5px solid #f44336; }
+        #bad-answers .correct-answer {
+            color: #ccff00;
+            font-weight: bold;
+            display: block;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        
+        <div id="game-ui" style="display: none;">
+            <div id="ui-top">
+                <div id="score">Puntaje: 0</div>
+                <div id="timer">Tiempo: 60</div>
+            </div>
+            <div id="ui-question">Cargando pregunta...</div>
+        </div>
+
+        <div id="answer-grid" style="display: none;">
+            <button class="answer-button" id="btn-0"></button>
+            <button class="answer-button" id="btn-1"></button>
+            <button class="answer-button" id="btn-2"></button>
+            <button class="answer-button" id="btn-3"></button>
+        </div>
+
+        <div id="start-screen" class="screen" style="display: flex;">
+            <h1>Capacitación Wilson V4.4</h1>
+            <p>Ingresa tu nombre o tienda:</p>
+            <input type="text" id="team-name" placeholder="Ej: Vendedor 1">
+            <div id="play-button" class="button">¡Jugar!</div>
+        </div>
+
+        <div id="end-screen" class="screen" style="display: none;">
+            <div id="end-screen-content"> 
+                <h1>¡Fin del Juego!</h1>
+                <h2 id="final-score">Puntaje Final: 0</h2>
+                
+                <h3>Ranking Global (Top 10) 🏆</h3>
+                <ol id="ranking-list">
+                    <li>Cargando ranking...</li>
+                </ol>
+                
+                <div id="review-container">
+                    <div id="review-good">
+                        <h3>Buenas</h3>
+                        <ul id="good-answers"></ul>
+                    </div>
+                    <div id="review-bad">
+                        <h3>Para Repasar</h3>
+                        <ul id="bad-answers"></ul>
+                    </div>
+                </div>
+                
+                <div id="replay-button" class="button">Jugar otra vez</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =================================================================
+        // ⚙️ ¡URL SECRETA DE GOOGLE SHEETS! ⚙️
+        // =================================================================
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwg2inIB-u-PrvcDdD-eEB7SLFXGasG5odX45JwB5fTuhfEcr0U0NAzoQ5QChGjKnvP/exec";
+        // =================================================================
+
+        // =================================================================
+        // ⚙️ BASE DE DATOS DE 40 PREGUNTAS ⚙️
+        // =================================================================
+        const BaseDeDatosPreguntas = [
+          // --- 10 PREGUNTAS DE RAQUETAS ---
+          {
+            pregunta: "¿Qué raqueta es para 'Máxima Potencia'?",
+            correcta: "Ultra",
+            incorrectas: ["Pro Staff", "Blade", "Clash"]
+          },
+          {
+            pregunta: "¿Qué raqueta es para 'Control y Precisión'?",
+            correcta: "Pro Staff",
+            incorrectas: ["Ultra", "Shift", "Clash"]
+          },
+          {
+            pregunta: "¿Qué raqueta es para 'Comodidad y Flexibilidad'?",
+            correcta: "Clash",
+            incorrectas: ["Blade", "Pro Staff", "Ultra"]
+          },
+          {
+            pregunta: "¿Qué raqueta es para 'Spin Moderno'?",
+            correcta: "Shift",
+            incorrectas: ["Ultra", "Clash", "Pro Staff"]
+          },
+          {
+            pregunta: "La Blade compite directo con la...",
+            correcta: "Head Speed / Radical",
+            incorrectas: ["Babolat Pure Drive", "Head Prestige", "Yonex EZONE"]
+          },
+          {
+            pregunta: "La Ultra compite directo con la...",
+            correcta: "Babolat Pure Drive",
+            incorrectas: ["Head Radical", "Babolat Pure Strike", "Yonex VCORE"]
+          },
+          {
+            pregunta: "La Pro Staff compite directo con la...",
+            correcta: "Head Prestige",
+            incorrectas: ["Head Extreme", "Babolat Pure Aero", "Yonex EZONE"]
+          },
+          {
+            pregunta: "¿Qué modelo Clash ofrece MÁXIMA tolerancia y potencia (cabeza 108)?",
+            correcta: "Clash 108",
+            incorrectas: ["Clash 100", "Clash 100L", "Blade 100"]
+          },
+          {
+            pregunta: "¿Qué patrón de encordado (string pattern) usa la Shift 99?",
+            correcta: "16x20",
+            incorrectas: ["18x20", "16x19", "16x18"]
+          },
+          {
+            pregunta: "¿En qué leyenda del tenis se inspira la serie RF 2025?",
+            correcta: "Roger Federer",
+            incorrectas: ["Pete Sampras", "Bela", "Serena Williams"]
+          },
+          
+          // --- 10 PREGUNTAS DE CUERDAS ---
+          {
+            pregunta: "¿Qué cuerda (multifilamento) es para 'Comodidad'?",
+            correcta: "Wilson Sensation",
+            incorrectas: ["Alu Power Rough", "4G Rough", "Revolver Spin"]
+          },
+          {
+            pregunta: "¿Qué cuerda (poliéster) tiene un 'perfil pentagonal' para spin?",
+            correcta: "Revolver Spin",
+            incorrectas: ["Sensation", "Alu Power Rough", "4G Rough"]
+          },
+          {
+            pregunta: "¿Qué poliéster es famoso por 'mantener la tensión'?",
+            correcta: "Luxilon 4G Rough",
+            incorrectas: ["Sensation", "Adrenaline", "Revolver"]
+          },
+          {
+            pregunta: "La Wilson Sensation (multi) compite con la...",
+            correcta: "Babolat Xcel",
+            incorrectas: ["Babolat RPM Blast", "Head Lynx", "Solinco Hyper-G"]
+          },
+          {
+            pregunta: "La Wilson Sensation es una cuerda de...",
+            correcta: "Multifilamento",
+            incorrectas: ["Poliéster", "Monofilamento", "Nylon"]
+          },
+          {
+            pregunta: "¿Qué poliéster es más fácil de encordar que otros?",
+            correcta: "Luxilon Adrenaline Rough",
+            incorrectas: ["Alu Power Rough", "4G Rough", "Revolver Spin"]
+          },
+          {
+            pregunta: "La Revolver Spin tiene un perfil... para morder la pelota.",
+            correcta: "Pentagonal",
+            incorrectas: ["Circular", "Octogonal", "Cuadrado"]
+          },
+          {
+            pregunta: "La Alu Power Rough es para jugadores avanzados que buscan MÁXIMO...",
+            correcta: "Spin y Control",
+            incorrectas: ["Potencia y Confort", "Durabilidad", "Sensación Suave"]
+          },
+          {
+            pregunta: "A diferencia de la Revolver Spin, la Revolver (normal) tiene una superficie...",
+            correcta: "Lisa",
+            incorrectas: ["Rugosa", "Pentagonal", "Texturizada"]
+          },
+          {
+            pregunta: "La Alu Power Rough (control) se recomienda con raquetas como...",
+            correcta: "Blade 98 / Pro Staff 97",
+            incorrectas: ["Clash 108", "Ultra 100L", "Clash 100L"]
+          },
+
+          // --- 10 PREGUNTAS DE ZAPATILLAS ---
+          {
+            pregunta: "¿Qué zapatilla de TENIS es para 'Pie Ancho'?",
+            correcta: "Rush Pro Ace",
+            incorrectas: ["Rush Pro 4.5", "Hurakn", "Bela Tour"]
+          },
+          {
+            pregunta: "¿Qué zapatilla de PÁDEL es para 'Agilidad y Velocidad'?",
+            correcta: "Hurakn",
+            incorrectas: ["Rush Pro Ace", "Bela Tour", "Pro Staff (Lifestyle)"]
+          },
+          {
+            pregunta: "¿Qué zapatilla es 'Lifestyle' (solo para vestir)?",
+            correcta: "Pro Staff",
+            incorrectas: ["Bela Tour", "Rush Pro 4.5", "Intrigue"]
+          },
+          {
+            pregunta: "¿Cuál es la zapatilla 'tope de gama' para PÁDEL de Bela?",
+            correcta: "Bela Tour",
+            incorrectas: ["Hurakn", "Rush Pro Ace", "Intrigue"]
+          },
+          {
+            pregunta: "¿Qué zapatilla de TENIS es para 'Estabilidad y Alto Rendimiento'?",
+            correcta: "Rush Pro 4.5",
+            incorrectas: ["Rush Pro Ace", "Hurakn", "Pro Staff"]
+          },
+          {
+            pregunta: "La Rush Pro 4.5 (Tenis) compite con la...",
+            correcta: "Asics Gel Resolution",
+            incorrectas: ["K-Swiss Hypercourt", "Babolat Jet Premura", "Head Motion Pro"]
+          },
+          {
+            pregunta: "La Bela Tour (Pádel) compite con la...",
+            correcta: "Babolat Jet Premura",
+            incorrectas: ["Asics Gel Resolution", "Adidas Barricade", "K-Swiss Classic"]
+          },
+          {
+            pregunta: "La zapatilla Pro Staff (Lifestyle) compite con la...",
+            correcta: "Adidas Stan Smith",
+            incorrectas: ["Asics Gel Resolution", "Head Sprint Pro", "Babolat Propulse"]
+          },
+          {
+            pregunta: "¿Qué zapatilla está diseñada 100% para el pie femenino?",
+            correcta: "Intrigue",
+            incorrectas: ["Hurakn", "Bela Tour", "Rush Pro Ace"]
+          },
+          {
+            pregunta: "En la familia Hurakn, ¿cuál es el modelo más ligero para 'volar' en la pista?",
+            correcta: "Hurakn Lite",
+            incorrectas: ["Hurakn Pro", "Hurakn 2.0", "Bela Tour"]
+          },
+
+          // --- 10 PREGUNTAS DE TECNOLOGÍAS ---
+          {
+            pregunta: "¿Qué tecnología de chasis usa la Rush Pro 4.5?",
+            correcta: "4D Support Chassis 2.0",
+            incorrectas: ["Kaos Chassis", "PTC Lite", "Generous Fit"]
+          },
+          {
+            pregunta: "¿Qué suela es para PÁDEL y facilita los giros?",
+            correcta: "Suela Spinner",
+            incorrectas: ["Suela Clay", "Suela All-Court", "Duralast"]
+          },
+          {
+            pregunta: "¿Qué tecnología es para 'Ajuste Ancho' (2E)?",
+            correcta: "Generous Fit",
+            incorrectas: ["4D Support Chassis", "Kaos Chassis", "R-DST+"]
+          },
+          {
+            pregunta: "¿Qué tecnología de chasis usa la Bela Tour?",
+            correcta: "Kaos Chassis",
+            incorrectas: ["4D Support Chassis 2.0", "PTC Lite", "Generous Fit"]
+          },
+          {
+            pregunta: "¿Qué compuesto de caucho da 'Máxima Durabilidad' en Pista Dura?",
+            correcta: "Duralast",
+            incorrectas: ["Suela Spinner", "R-DST+", "Fused 8 Foam"]
+          },
+          {
+            pregunta: "¿Qué chasis de estabilidad usa la Hurakn Pro?",
+            correcta: "Pro Torque Chassis (PTC)",
+            incorrectas: ["Kaos Chassis", "4D Support Chassis", "PTC Lite"]
+          },
+          {
+            pregunta: "¿Cuál es la espuma de amortiguación 'estándar de oro' (confort y rebote)?",
+            correcta: "R-DST+",
+            incorrectas: ["Energy Surge", "Fused 8 Foam", "Duralast"]
+          },
+          {
+            pregunta: "¿Cómo se llama la suela única de la Bela Tour, diseñada con Belasteguín?",
+            correcta: "Suela 'Cat' de Bela",
+            incorrectas: ["Suela Spinner", "Suela Clay", "Suela All-Court"]
+          },
+          {
+            pregunta: "¿Qué ajuste especial usa la zapatilla Intrigue (talón estrecho)?",
+            correcta: "Women's Specific Fit",
+            incorrectas: ["Generous Fit (2E)", "4D Support Chassis", "PTC Lite"]
+          },
+          {
+            pregunta: "¿Qué espuma usa la Rush Pro 4.5 para 'rebote explosivo'?",
+            correcta: "Energy Surge",
+            incorrectas: ["R-DST+", "Fused 8 Foam", "Generous Fit"]
+          }
+        ];
+        // =================================================================
+        
+        // --- TODO EL RESTO DEL CÓDIGO DEL JUEGO (JAVASCRIPT) ---
+        
+        const startScreen = document.getElementById('start-screen');
+        const endScreen = document.getElementById('end-screen');
+        const gameUI = document.getElementById('game-ui');
+        const answerGrid = document.getElementById('answer-grid');
+        
+        const playButton = document.getElementById('play-button');
+        const replayButton = document.getElementById('replay-button');
+        const teamNameInput = document.getElementById('team-name');
+        
+        const scoreDisplay = document.getElementById('score');
+        const timerDisplay = document.getElementById('timer');
+        const questionDisplay = document.getElementById('ui-question');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const rankingList = document.getElementById('ranking-list');
+        
+        const goodAnswersList = document.getElementById('good-answers');
+        const badAnswersList = document.getElementById('bad-answers');
+        
+        const answerButtons = [
+            document.getElementById('btn-0'),
+            document.getElementById('btn-1'),
+            document.getElementById('btn-2'),
+            document.getElementById('btn-3')
+        ];
+
+        let respuestasBuenas = [];
+        let respuestasMalas = [];
+        let preguntaActual = null;
+        let preguntasDisponibles = []; 
+
+        let gameState = 'start';
+        let score = 0;
+        let timer = 60;
+        let gameTimerInterval;
+        let teamName = "Jugador";
+        
+        function llenarBolsaDePreguntas() {
+            preguntasDisponibles = [...BaseDeDatosPreguntas];
+            // Algoritmo de mezcla Fisher-Yates (para barajar las preguntas)
+            for (let i = preguntasDisponibles.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [preguntasDisponibles[i], preguntasDisponibles[j]] = [preguntasDisponibles[j], preguntasDisponibles[i]];
+            }
+        }
+
+        function startGame() {
+            teamName = teamNameInput.value || "Vendedor Anónimo";
+            score = 0;
+            timer = 60;
+            respuestasBuenas = [];
+            respuestasMalas = [];
+            
+            scoreDisplay.textContent = `Puntaje: ${score}`;
+            timerDisplay.textContent = `Tiempo: ${timer}`;
+            
+            llenarBolsaDePreguntas();
+            
+            startScreen.style.display = 'none';
+            endScreen.style.display = 'none';
+            gameUI.style.display = 'block';
+            answerGrid.style.display = 'grid';
+            
+            nextQuestion();
+            gameTimerInterval = setInterval(updateTimer, 1000);
+            gameState = 'playing';
+        }
+
+        function updateTimer() {
+            if (gameState !== 'playing') return;
+            
+            timer--;
+            timerDisplay.textContent = `Tiempo: ${timer}`;
+            
+            if (timer <= 0) {
+                endGame();
+            }
+        }
+
+        function nextQuestion() {
+            if (preguntasDisponibles.length === 0) {
+                endGame();
+                return;
+            }
+            
+            // Limpiar botones
+            answerButtons.forEach(btn => {
+                btn.disabled = false;
+                btn.className = 'answer-button';
+            });
+
+            preguntaActual = preguntasDisponibles.pop();
+            
+            questionDisplay.textContent = preguntaActual.pregunta;
+            
+            // Combinar respuestas correctas e incorrectas y barajarlas
+            let opciones = [preguntaActual.correcta, ...preguntaActual.incorrectas];
+            for (let i = opciones.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [opciones[i], opciones[j]] = [opciones[j], opciones[i]];
+            }
+            
+            // Asignar a botones
+            for (let i = 0; i < answerButtons.length; i++) {
+                answerButtons[i].textContent = opciones[i];
+            }
+        }
+
+        function selectAnswer(buttonIndex) {
+            if (gameState !== 'playing') return;
+            
+            const selectedButton = answerButtons[buttonIndex];
+            const selectedAnswer = selectedButton.textContent;
+            
+            // Deshabilitar todos los botones temporalmente
+            answerButtons.forEach(btn => btn.disabled = true);
+            
+            if (selectedAnswer === preguntaActual.correcta) {
+                // Respuesta Correcta
+                score++;
+                scoreDisplay.textContent = `Puntaje: ${score}`;
+                selectedButton.classList.add('correct');
+                respuestasBuenas.push({
+                    q: preguntaActual.pregunta,
+                    r: selectedAnswer
+                });
+            } else {
+                // Respuesta Incorrecta
+                selectedButton.classList.add('incorrect');
+                // Resaltar la correcta
+                answerButtons.forEach(btn => {
+                    if (btn.textContent === preguntaActual.correcta) {
+                        btn.classList.add('correct');
+                    }
+                });
+                respuestasMalas.push({
+                    q: preguntaActual.pregunta,
+                    r: selectedAnswer,
+                    c: preguntaActual.correcta
+                });
+            }
+            
+            // Pausa breve y luego siguiente pregunta
+            setTimeout(nextQuestion, 1200);
+        }
+
+        function endGame() {
+            gameState = 'end';
+            clearInterval(gameTimerInterval);
+            
+            gameUI.style.display = 'none';
+            answerGrid.style.display = 'none';
+            endScreen.style.display = 'flex';
+            
+            finalScoreDisplay.textContent = `Puntaje Final: ${score}`;
+            
+            // Llenar listas de revisión
+            fillReviewLists();
+            
+            // Enviar puntaje y obtener ranking
+            submitScoreAndGetRanking();
+        }
+
+        function fillReviewLists() {
+            goodAnswersList.innerHTML = '';
+            badAnswersList.innerHTML = '';
+            
+            if (respuestasBuenas.length === 0) {
+                goodAnswersList.innerHTML = '<li>¡A practicar!</li>';
+            } else {
+                respuestasBuenas.forEach(item => {
+                    goodAnswersList.innerHTML += `<li>P: ${item.q}<br><strong>R: ${item.r}</strong></li>`;
+                });
+            }
+            
+            if (respuestasMalas.length === 0) {
+                badAnswersList.innerHTML = '<li>¡Perfecto!</li>';
+            } else {
+                respuestasMalas.forEach(item => {
+                    badAnswersList.innerHTML += `<li>P: ${item.q}<br><em>Tu R: ${item.r}</em><span class="correct-answer">Correcta: ${item.c}</span></li>`;
+                });
+            }
+        }
+        
+        function submitScoreAndGetRanking() {
+            rankingList.innerHTML = '<li>Enviando puntaje...</li>';
+            
+            const formData = new FormData();
+            formData.append('action', 'addScore');
+            formData.append('name', teamName);
+            formData.append('score', score);
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result === 'success' && data.ranking) {
+                    displayRanking(data.ranking);
+                } else {
+                    rankingList.innerHTML = '<li>No se pudo cargar el ranking.</li>';
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting score:', error);
+                rankingList.innerHTML = '<li>Error de conexión con el ranking.</li>';
+            });
+        }
+        
+        function displayRanking(rankingData) {
+            rankingList.innerHTML = ''; // Limpiar "Cargando..."
+            
+            if (rankingData.length === 0) {
+                rankingList.innerHTML = '<li>¡No hay puntajes. Sé el primero!</li>';
+                return;
+            }
+            
+            rankingData.forEach((entry, index) => {
+                const li = document.createElement('li');
+                
+                // Resaltar el puntaje actual del jugador
+                if (entry.name === teamName && entry.score === score) {
+                    li.style.backgroundColor = "#de130a";
+                    li.style.fontWeight = "bold";
+                }
+                
+                li.innerHTML = `${entry.name} <span class="player-score">${entry.score} pts</span>`;
+                rankingList.appendChild(li);
+            });
+        }
+
+        // --- Event Listeners ---
+        playButton.addEventListener('click', startGame);
+        replayButton.addEventListener('click', startGame);
+        
+        answerButtons[0].addEventListener('click', () => selectAnswer(0));
+        answerButtons[1].addEventListener('click', () => selectAnswer(1));
+        answerButtons[2].addEventListener('click', () => selectAnswer(2));
+        answerButtons[3].addEventListener('click', () => selectAnswer(3));
+
+    </script>
+</body>
+</html>
