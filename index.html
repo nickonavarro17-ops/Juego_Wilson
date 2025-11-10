@@ -2,14 +2,18 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Juego Capacitación Wilson V4.5</title>
+    <title>Juego Capacitación Wilson V5.0 (Firebase)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
+    <!-- Google Tag Manager (GTM-PKPXVDZJ) -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
     j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','GTM-PKPXVDZJ');</script>
+    <!-- End Google Tag Manager -->
+
+    
     <style>
         body, html {
             margin: 0;
@@ -26,7 +30,7 @@
             padding-bottom: 90px;
             box-sizing: border-box; 
             position: relative;
-            background-color: #3a7a3a; /* Verde cancha de tenis */
+            background-color: #3a7a3a;
             background-image: 
                 linear-gradient(to right, rgba(255, 255, 255, 0.1) 2px, transparent 2px),
                 linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 2px, transparent 2px);
@@ -35,7 +39,6 @@
             justify-content: space-between;
         }
         
-        /* --- PANTALLAS (Popups) --- */
         .screen {
             position: absolute;
             top: 0;
@@ -82,8 +85,17 @@
             font-weight: bold;
             text-transform: uppercase;
             margin-top: 20px;
+            transition: background-color 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 0 #b71007;
         }
-        .button:hover { background-color: #b71007; }
+        .button:hover { 
+            background-color: #b71007; 
+            box-shadow: 0 2px 0 #8c0c05;
+        }
+        .button:active {
+            transform: translateY(2px);
+            box-shadow: none;
+        }
         
         /* --- UI DEL JUEGO (Visible) --- */
         #game-ui {
@@ -107,27 +119,25 @@
             text-align: center;
             font-weight: bold;
             box-sizing: border-box;
-            min-height: 10vh; /* Espacio para la pregunta */
+            min-height: 10vh;
         }
         
         /* --- GRID DE RESPUESTAS --- */
         #answer-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr; /* 2x2 grid */
+            grid-template-columns: 1fr 1fr;
             grid-template-rows: 1fr 1fr;
             gap: 10px;
             padding: 10px;
             width: 100%;
-            height: 40vh; /* Ocupa la parte baja de la pantalla */
+            height: 40vh;
             box-sizing: border-box;
         }
         
-        /* === CAMBIO DE ESTILO DE BOTONES === */
         .answer-button {
-            background: #FFFFFF; /* FONDO BLANCO */
-            border: 2px solid #CCCCCC; /* Borde gris claro */
-            color: #333333; /* Texto oscuro */
-            
+            background: #FFFFFF;
+            border: 2px solid #CCCCCC;
+            color: #333333;
             border-radius: 10px;
             font-size: calc(14px + 1vw);
             font-weight: bold;
@@ -140,29 +150,25 @@
             transition: background-color 0.2s, transform 0.1s;
         }
         .answer-button:hover:not(:disabled) {
-            background: #f0f0f0; /* Un gris muy claro al pasar el mouse */
+            background: #f0f0f0;
         }
         .answer-button:disabled {
             cursor: not-allowed;
             opacity: 0.8;
         }
         .answer-button.correct {
-            background-color: #4CAF50 !important; /* Verde */
+            background-color: #4CAF50 !important;
             border-color: #4CAF50 !important;
-            color: white !important; /* Texto blanco para leerse sobre verde */
+            color: white !important;
         }
         .answer-button.incorrect {
-            background-color: #f44336 !important; /* Rojo */
+            background-color: #f44336 !important;
             border-color: #f44336 !important;
-            color: white !important; /* Texto blanco para leerse sobre rojo */
+            color: white !important;
         }
 
 
         /* --- PANTALLA FINAL --- */
-        #end-screen-content {
-            width: 100%;
-            max-width: 800px;
-        }
         #ranking-list {
             list-style: decimal;
             padding-left: 30px;
@@ -184,14 +190,14 @@
             font-weight: bold;
         }
         
-        /* --- SECCIÓN DE REVISIÓN ELIMINADA --- */
-        
     </style>
 </head>
 <body>
 
+    <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKPXVDZJ"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+
     <div id="game-container">
         
         <div id="game-ui" style="display: none;">
@@ -210,9 +216,9 @@
         </div>
 
         <div id="start-screen" class="screen" style="display: flex;">
-            <h1>Capacitación Wilson V4.5</h1>
+            <h1>Capacitación Wilson V5.0</h1>
             <p>Ingresa tu nombre o tienda:</p>
-            <input type="text" id="team-name" placeholder="Ej: Vendedor 1">
+            <input type="text" id="team-name" placeholder="Ej: Vendedor 1" maxlength="20">
             <div id="play-button" class="button">¡Jugar!</div>
         </div>
 
@@ -231,11 +237,53 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        // === IMPORTACIÓN DE MÓDULOS DE FIREBASE ===
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
         // =================================================================
-        // ⚙️ ¡URL SECRETA DE GOOGLE SHEETS! ⚙️
+        
         // =================================================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH4MLrX7IeO6CK3VRbuQCsR_a2sCOLCPqgNQGbvynx4tI310GbfLFTQHHk9-zSfu4k/exec";
+        // ⚙️ CONFIGURACIÓN DE FIREBASE (TU PROYECTO) ⚙️
+        // =================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyDdktC1AVx2B8XGpuwk-yEW6GPP_uVB3Bk",
+            authDomain: "juego-wilson-ranking.firebaseapp.com",
+            projectId: "juego-wilson-ranking",
+            storageBucket: "juego-wilson-ranking.firebasestorage.app",
+            messagingSenderId: "424423683465",
+            appId: "1:424423683465:web:21f812e89e2e4f38dd1d58",
+            measurementId: "G-JT7E551P1M"
+        };
+        
+        // Inicialización de Firebase y Firestore
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const RANKING_COLLECTION = "rankings";
+        // =================================================================
+
+        // === DECLARACIÓN DE VARIABLES DE UI (MOVIDO AL INICIO DEL MÓDULO) ===
+        const startScreen = document.getElementById('start-screen');
+        const endScreen = document.getElementById('end-screen');
+        const gameUI = document.getElementById('game-ui');
+        const answerGrid = document.getElementById('answer-grid');
+        
+        const playButton = document.getElementById('play-button');
+        const replayButton = document.getElementById('replay-button');
+        const teamNameInput = document.getElementById('team-name');
+        
+        const scoreDisplay = document.getElementById('score');
+        const timerDisplay = document.getElementById('timer');
+        const questionDisplay = document.getElementById('ui-question');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const rankingList = document.getElementById('ranking-list');
+
+        const answerButtons = [
+            document.getElementById('btn-0'),
+            document.getElementById('btn-1'),
+            document.getElementById('btn-2'),
+            document.getElementById('btn-3')
+        ];
         // =================================================================
 
         // =================================================================
@@ -336,7 +384,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH4MLrX7IeO6CK3VRbu
             incorrectas: ["Potencia y Confort", "Durabilidad", "Sensación Suave"]
           },
           {
-            pregunta: "A diferencia de la Revolver Spin, la Revolver (normal) tiene una superficie...",
+            pregunta: "La diferencia de la Revolver Spin, la Revolver (normal) tiene una superficie...",
             correcta: "Lisa",
             incorrectas: ["Rugosa", "Pentagonal", "Texturizada"]
           },
@@ -389,7 +437,7 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH4MLrX7IeO6CK3VRbu
           },
           {
             pregunta: "¿Qué zapatilla está diseñada 100% para el pie femenino?",
-            correcta: "Intrigue", // <-- Esta es la que corregimos
+            correcta: "Intrigue",
             incorrectas: ["Hurakn", "Bela Tour", "Rush Pro Ace"]
           },
           {
@@ -454,31 +502,6 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH4MLrX7IeO6CK3VRbu
         
         // --- TODO EL RESTO DEL CÓDIGO DEL JUEGO (JAVASCRIPT) ---
         
-        const startScreen = document.getElementById('start-screen');
-        const endScreen = document.getElementById('end-screen');
-        const gameUI = document.getElementById('game-ui');
-        const answerGrid = document.getElementById('answer-grid');
-        
-        const playButton = document.getElementById('play-button');
-        const replayButton = document.getElementById('replay-button');
-        const teamNameInput = document.getElementById('team-name');
-        
-        const scoreDisplay = document.getElementById('score');
-        const timerDisplay = document.getElementById('timer');
-        const questionDisplay = document.getElementById('ui-question');
-        const finalScoreDisplay = document.getElementById('final-score');
-        const rankingList = document.getElementById('ranking-list');
-        
-        // Listas de revisión eliminadas
-        
-        const answerButtons = [
-            document.getElementById('btn-0'),
-            document.getElementById('btn-1'),
-            document.getElementById('btn-2'),
-            document.getElementById('btn-3')
-        ];
-
-        // Variables de revisión eliminadas
         let preguntaActual = null;
         let preguntasDisponibles = []; 
 
@@ -490,7 +513,6 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH4MLrX7IeO6CK3VRbu
         
         function llenarBolsaDePreguntas() {
             preguntasDisponibles = [...BaseDeDatosPreguntas];
-            // Algoritmo de mezcla Fisher-Yates (para barajar las preguntas)
             for (let i = preguntasDisponibles.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [preguntasDisponibles[i], preguntasDisponibles[j]] = [preguntasDisponibles[j], preguntasDisponibles[i]];
@@ -498,10 +520,10 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH4MLrX7IeO6CK3VRbu
         }
 
         function startGame() {
-            teamName = teamNameInput.value || "Vendedor Anónimo";
+            // Limitar el nombre del equipo a 20 caracteres para un mejor ranking
+            teamName = (teamNameInput.value || "Vendedor Anónimo").substring(0, 20);
             score = 0;
             timer = 60;
-            // Variables de revisión eliminadas
             
             scoreDisplay.textContent = `Puntaje: ${score}`;
             timerDisplay.textContent = `Tiempo: ${timer}`;
@@ -535,7 +557,6 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH4MLrX7IeO6CK3VRbu
                 return;
             }
             
-            // Limpiar botones
             answerButtons.forEach(btn => {
                 btn.disabled = false;
                 btn.className = 'answer-button';
@@ -545,14 +566,12 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH4MLrX7IeO6CK3VRbu
             
             questionDisplay.textContent = preguntaActual.pregunta;
             
-            // Combinar respuestas correctas e incorrectas y barajarlas
             let opciones = [preguntaActual.correcta, ...preguntaActual.incorrectas];
             for (let i = opciones.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [opciones[i], opciones[j]] = [opciones[j], opciones[i]];
             }
             
-            // Asignar a botones
             for (let i = 0; i < answerButtons.length; i++) {
                 answerButtons[i].textContent = opciones[i];
             }
@@ -564,32 +583,25 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH4MLrX7IeO6CK3VRbu
             const selectedButton = answerButtons[buttonIndex];
             const selectedAnswer = selectedButton.textContent;
             
-            // Deshabilitar todos los botones temporalmente
             answerButtons.forEach(btn => btn.disabled = true);
             
             if (selectedAnswer === preguntaActual.correcta) {
-                // Respuesta Correcta
                 score++;
                 scoreDisplay.textContent = `Puntaje: ${score}`;
                 selectedButton.classList.add('correct');
-                // No se guardan las respuestas buenas
             } else {
-                // Respuesta Incorrecta
                 selectedButton.classList.add('incorrect');
-                // Resaltar la correcta (Esto es lo que pediste)
                 answerButtons.forEach(btn => {
                     if (btn.textContent === preguntaActual.correcta) {
                         btn.classList.add('correct');
                     }
                 });
-                // No se guardan las respuestas malas
             }
             
-            // Pausa breve y luego siguiente pregunta
             setTimeout(nextQuestion, 1200);
         }
 
-        function endGame() {
+        async function endGame() {
             gameState = 'end';
             clearInterval(gameTimerInterval);
             
@@ -599,42 +611,48 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH4MLrX7IeO6CK3VRbu
             
             finalScoreDisplay.textContent = `Puntaje Final: ${score}`;
             
-            // Llenar listas de revisión ELIMINADO
-            
             // Enviar puntaje y obtener ranking
-            submitScoreAndGetRanking();
+            await submitScoreAndGetRanking();
         }
-
-        // Función fillReviewLists() ELIMINADA
         
-        function submitScoreAndGetRanking() {
-            rankingList.innerHTML = '<li>Enviando puntaje...</li>';
+        async function submitScoreAndGetRanking() {
+            rankingList.innerHTML = '<li>Guardando y cargando ranking...</li>';
             
-            const formData = new FormData();
-            formData.append('action', 'addScore');
-            formData.append('name', teamName);
-            formData.append('score', score);
+            try {
+                // 1. Guardar el puntaje en Firestore
+                await addDoc(collection(db, RANKING_COLLECTION), {
+                    name: teamName,
+                    score: score,
+                    timestamp: Date.now()
+                });
+                
+                // 2. Obtener el ranking (Top 10)
+                const q = query(
+                    collection(db, RANKING_COLLECTION),
+                    orderBy("score", "desc"), // Ordenar por puntaje descendente
+                    orderBy("timestamp", "asc"), // Desempate por tiempo (el más antiguo gana)
+                    limit(10) // Limitar a los 10 mejores
+                );
 
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.result === 'success' && data.ranking) {
-                    displayRanking(data.ranking);
-                } else {
-                    rankingList.innerHTML = '<li>No se pudo cargar el ranking.</li>';
-                }
-            })
-            .catch(error => {
-                console.error('Error submitting score:', error);
-                rankingList.innerHTML = '<li>Error de conexión con el ranking.</li>';
-            });
+                const querySnapshot = await getDocs(q);
+                const rankingData = [];
+                
+                querySnapshot.forEach((doc) => {
+                    // El campo score es un Number en Firestore y se lee aquí
+                    rankingData.push(doc.data());
+                });
+
+                displayRanking(rankingData);
+                
+            } catch (error) {
+                console.error('Error al conectar o guardar en Firebase:', error);
+                // Mostrar un mensaje de error claro si falla la conexión
+                rankingList.innerHTML = '<li>Error: No se pudo conectar con la base de datos del ranking. Por favor, verifica las reglas de seguridad en Firebase.</li>';
+            }
         }
         
         function displayRanking(rankingData) {
-            rankingList.innerHTML = ''; // Limpiar "Cargando..."
+            rankingList.innerHTML = '';
             
             if (rankingData.length === 0) {
                 rankingList.innerHTML = '<li>¡No hay puntajes. Sé el primero!</li>';
@@ -644,8 +662,10 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH4MLrX7IeO6CK3VRbu
             rankingData.forEach((entry, index) => {
                 const li = document.createElement('li');
                 
-                // Resaltar el puntaje actual del jugador
-                if (entry.name === teamName && entry.score === score) {
+                // Resaltar el puntaje actual si está en el Top 10
+                const isCurrentPlayer = entry.name === teamName && entry.score === score && index < 10;
+                
+                if (isCurrentPlayer) {
                     li.style.backgroundColor = "#de130a";
                     li.style.fontWeight = "bold";
                 }
@@ -655,17 +675,14 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwH4MLrX7IeO6CK3VRbu
             });
         }
         
-        // === CAMBIO: Nueva función para volver al inicio ===
         function resetToStart() {
             endScreen.style.display = 'none';
             startScreen.style.display = 'flex';
-            teamNameInput.value = ""; // Limpia el nombre anterior
+            teamNameInput.value = "";
         }
 
         // --- Event Listeners ---
         playButton.addEventListener('click', startGame);
-        
-        // === CAMBIO: El botón de replay ahora llama a resetToStart ===
         replayButton.addEventListener('click', resetToStart);
         
         answerButtons[0].addEventListener('click', () => selectAnswer(0));
