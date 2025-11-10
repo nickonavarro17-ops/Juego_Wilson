@@ -5,14 +5,16 @@
     <title>Juego Capacitación Wilson V5.0 (Firebase)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 
-    <!-- Google Tag Manager (GTM-PKPXVDZJ) -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-PKPXVDZJ');</script>
-    <!-- End Google Tag Manager -->
-
+    <!-- Google tag (gtag.js) - G-JT7E551P1M -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-JT7E551P1M"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+    
+      gtag('config', 'G-JT7E551P1M');
+    </script>
+    <!-- End Google tag (gtag.js) -->
     
     <style>
         body, html {
@@ -194,9 +196,10 @@
 </head>
 <body>
 
-    <!-- Google Tag Manager (noscript) -->
-    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKPXVDZJ"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- El código de GTM (noscript) ya no es necesario si usamos gtag.js directo -->
+    <!-- Si usas gtag.js, no necesitas esta sección, pero la dejo comentada por si acaso. -->
+    <!-- <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PKPXVDZJ"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript> -->
 
     <div id="game-container">
         
@@ -227,7 +230,7 @@
                 <h1>¡Fin del Juego!</h1>
                 <h2 id="final-score">Puntaje Final: 0</h2>
                 
-                <h3>Ranking Global (Top 10) 🏆</h3>
+                <h3>Ranking Global (Top 20) 🏆</h3>
                 <ol id="ranking-list">
                     <li>Cargando ranking...</li>
                 </ol>
@@ -626,12 +629,12 @@
                     timestamp: Date.now()
                 });
                 
-                // 2. Obtener el ranking (Top 10)
+                // 2. Obtener el ranking (Top 20)
                 const q = query(
                     collection(db, RANKING_COLLECTION),
                     orderBy("score", "desc"), // Ordenar por puntaje descendente
                     orderBy("timestamp", "asc"), // Desempate por tiempo (el más antiguo gana)
-                    limit(10) // Limitar a los 10 mejores
+                    limit(20) // Limitar a los 20 mejores
                 );
 
                 const querySnapshot = await getDocs(q);
@@ -662,8 +665,8 @@
             rankingData.forEach((entry, index) => {
                 const li = document.createElement('li');
                 
-                // Resaltar el puntaje actual si está en el Top 10
-                const isCurrentPlayer = entry.name === teamName && entry.score === score && index < 10;
+                // Resaltar el puntaje actual si está en el Top 20
+                const isCurrentPlayer = entry.name === teamName && entry.score === score && index < 20;
                 
                 if (isCurrentPlayer) {
                     li.style.backgroundColor = "#de130a";
@@ -693,6 +696,3 @@
     </script>
 </body>
 </html>
-
-
-
